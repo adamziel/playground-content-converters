@@ -60,3 +60,12 @@ $ cat output-dir/mywordpresswebsite.wordpress.2024-06-11.000.xml | grep -B1 -A1 
 <!-- /wp:heading -->
 ]]></content:encoded>
 ```
+
+## Related projects
+
+* [Rewrite WXR](https://github.com/adamziel/wxr-normalize/blob/trunk/rewrite-wxr.php) Rewrites URLs in a WXR file while keeping track of the URLs found. See the related [Blueprints repo PR](https://github.com/WordPress/blueprints/pull/52).
+* [Site Transfer Protocol](https://core.trac.wordpress.org/ticket/60375)
+* [Playground Documentation Workflow](https://github.com/adamziel/playground-docs-workflow)
+* [Edit Visually browser extension](https://github.com/WordPress/playground-tools/pull/298)
+* [Data Liberation](https://wordpress.org/data-liberation/)
+
