@@ -1,0 +1,81 @@
+<!-- wp:heading {"level":1} -->
+<h1 class="wp-block-heading">Pair the site editor's nested iframe to the Service Worker.</h1>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>Without the patch below, the site editor initiates network requests that<br>aren't routed through the service worker. That's a known browser issue:</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:list -->
+<ul class="wp-block-list"><!-- wp:list-item -->
+<li>https://bugs.chromium.org/p/chromium/issues/detail?id=880768</li>
+<!-- /wp:list-item -->
+
+<!-- wp:list-item -->
+<li>https://bugzilla.mozilla.org/show_bug.cgi?id=1293277</li>
+<!-- /wp:list-item -->
+
+<!-- wp:list-item -->
+<li>https://github.com/w3c/ServiceWorker/issues/765</li>
+<!-- /wp:list-item --></ul>
+<!-- /wp:list -->
+
+<!-- wp:paragraph -->
+<p>The problem with iframes using srcDoc and src="about:blank" as they<br>fail to inherit the root site's service worker.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>Gutenberg loads the site editor using &lt;iframe srcDoc="&lt;!doctype html"><br>to force the standards mode and not the quirks mode:</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>https://github.com/WordPress/gutenberg/pull/38855</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>This commit patches the site editor to achieve the same result via</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:html -->
+<iframe src="/doctype.html"> and a doctype.html file containing just
+`<!doctype html>`. This allows the iframe to inherit the service worker
+and correctly load all the css, js, fonts, images, and other assets.
+<!-- /wp:html -->
+
+<!-- wp:paragraph -->
+<p>Ideally this issue would be fixed directly in Gutenberg and the patch<br>below would be removed.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>See https://github.com/WordPress/wordpress-playground/issues/42 for more details</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">Why does this code live in the service worker?</h2>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>There's many ways to install the Gutenberg plugin:</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:list -->
+<ul class="wp-block-list"><!-- wp:list-item -->
+<li>Install plugin step</li>
+<!-- /wp:list-item -->
+
+<!-- wp:list-item -->
+<li>Import a site</li>
+<!-- /wp:list-item -->
+
+<!-- wp:list-item -->
+<li>Install Gutenberg from the plugin directory</li>
+<!-- /wp:list-item -->
+
+<!-- wp:list-item -->
+<li>Upload a Gutenberg zip</li>
+<!-- /wp:list-item --></ul>
+<!-- /wp:list -->
+
+<!-- wp:paragraph -->
+<p>It's too difficult to patch Gutenberg in all these cases, so we blanket-patch<br>all the scripts requested over the network whose names seem to indicate they're<br>related to the Gutenberg plugin.</p>
+<!-- /wp:paragraph -->

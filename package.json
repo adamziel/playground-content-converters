@@ -1,0 +1,17 @@
+{
+  "name": "markdown-importer",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@wordpress/block-library": "^9.0.0",
+    "@wordpress/blocks": "^13.0.0",
+    "commonmark": "^0.31.0",
+    "jsdom": "^24.1.0"
+  }
+}

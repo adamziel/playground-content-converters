@@ -1,0 +1,21 @@
+{
+    "$schema": "https://playground.wordpress.net/blueprint-schema.json",
+    "steps": [
+        {
+            "step": "activatePlugin",
+            "pluginPath": "block-markup-importer/block-markup-importer.php"
+        },
+        {
+            "step": "runPHP",
+            "code": "<?php require '/wordpress/wp-load.php'; $GLOBALS['@pdo']->query('DELETE FROM wp_posts WHERE id > 0'); $GLOBALS['@pdo']->query(\"UPDATE SQLITE_SEQUENCE SET SEQ=0 WHERE NAME='wp_posts'\");  $GLOBALS['@pdo']->query('DELETE FROM wp_postmeta WHERE post_id > 1'); $GLOBALS['@pdo']->query(\"UPDATE SQLITE_SEQUENCE SET SEQ=20 WHERE NAME='wp_postmeta'\"); $GLOBALS['@pdo']->query('DELETE FROM wp_comments'); $GLOBALS['@pdo']->query(\"UPDATE SQLITE_SEQUENCE SET SEQ=0 WHERE NAME='wp_comments'\"); $GLOBALS['@pdo']->query('DELETE FROM wp_commentmeta'); $GLOBALS['@pdo']->query(\"UPDATE SQLITE_SEQUENCE SET SEQ=0 WHERE NAME='wp_commentmeta'\"); "
+        },
+        {
+            "step": "runPHP",
+            "code": "<?php require '/wordpress/wp-load.php'; import_blocks_markup_from_directory('/block-markup'); "
+        },
+        {
+            "step": "wp-cli",
+            "command": "wp export --dir=/output/ --user=admin --post_type=page"
+        }
+    ]
+}
