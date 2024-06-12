@@ -4,7 +4,7 @@
  */
 
 define("EXTENSION", ".blockhtml");
-define("INDEX_FILE_NAME", "index");
+define("INDEX_FILE_NAME", "01-index");
 define("INDEX_FILE", INDEX_FILE_NAME . EXTENSION);
 
 function import_blocks_markup_from_directory($block_markup_path) {
@@ -69,7 +69,7 @@ function create_pages($pages, $author_id)
 
     $ids_by_path = [];
     foreach($by_path as $page) {
-        if(str_ends_with($page['path'], INDEX_FILE)) {
+        if(str_ends_with($page['path'], '/' . INDEX_FILE)) {
             $parent_path = dirname(dirname($page['path'])) . '/' . INDEX_FILE;
         } else {
             $parent_path = dirname($page['path']) . '/' . INDEX_FILE;
@@ -89,9 +89,7 @@ function create_page($page, $parent_id=null, $author_id) {
         $page['name'] = basename(dirname($page['path']));
     }
 
-	global $wpdb;
-	$table_name = $wpdb->prefix . 'posts';
-	$post_id = $wpdb->insert($table_name, array(
+	$post_id = wp_insert_post(array(
 		'post_title' => $page['name'],
 		'post_content' => $page['content'],
 		'post_status' => 'publish',
@@ -99,6 +97,11 @@ function create_page($page, $parent_id=null, $author_id) {
 		'post_parent' => $parent_id,
 		'post_author' => $author_id
 	));
+    
+    if (is_wp_error($post_id)) {
+        // echo('Failed to insert page: ' . $post_id->get_error_message());
+        exit(1);
+    }
 
 	return $post_id;
 }
