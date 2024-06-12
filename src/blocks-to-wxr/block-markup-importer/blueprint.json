@@ -16,10 +16,6 @@
         {
             "step": "wp-cli",
             "command": "wp export --dir=/output/ --user=admin --post_type=page"
-        },
-        {
-            "step": "runPHP",
-            "code": "<?php require '/wordpress/wp-load.php'; import_blocks_markup_from_directory('/block-markup'); "
         }
     ]
 }
