@@ -3,7 +3,8 @@ import { hideBin } from 'yargs/helpers';
 import * as fs from 'fs';
 import * as readline from 'readline';
 import { blockMarkupToMarkdown, markdownToBlockMarkup } from './converters';
-import { convertDirectory } from './convert-directory';
+import { iterateDirectory } from './convert-directory';
+import path from 'path';
 
 // Define the allowed formats
 const formats = {
@@ -112,13 +113,34 @@ const convertFileFormat = async (args: CliOptions) => {
 	const mapper = pipelines[args.from][args.to];
 
 	if (isDirectory) {
-		await convertDirectory({
-			inputDir: args.source!,
-			inputExtension: formats[args.from].extensions[0],
-			outputDir: args.target!,
-			outputExtension: formats[args.to].extensions[0],
-			convert: mapper,
-		});
+		const inputDir = path.normalize(args.source);
+		const filesPaths = iterateDirectory(inputDir);
+		const inputExtension = formats[args.from].extensions[0];
+		const outputExtension = formats[args.to].extensions[0];
+
+		for (const filePath of filesPaths) {
+			const relativePath = filePath
+				.substring(inputDir.length)
+				.replace(/^\//, '');
+
+			if (!filePath.endsWith(inputExtension)) {
+				console.log(`Skipping ${relativePath}`);
+				continue;
+			}
+
+			console.log(`Converting ${relativePath}`);
+
+			let outputPath = path.join(args.target, relativePath);
+			const lastDot = outputPath.lastIndexOf('.');
+			outputPath = outputPath.substring(0, lastDot) + outputExtension;
+
+			const content = fs.readFileSync(filePath, 'utf-8');
+			const output = await mapper(content, relativePath);
+
+			fs.mkdirSync(path.dirname(outputPath), { recursive: true });
+			fs.writeFileSync(outputPath, output);
+		}
+		console.log('Conversion complete');
 		return;
 	}
 
