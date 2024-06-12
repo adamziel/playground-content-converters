@@ -4,7 +4,8 @@
  */
 
 define("EXTENSION", ".blockhtml");
-define("INDEX_FILE_NAME", "01-index");
+// define("INDEX_FILE_NAME", "01-index");
+define("INDEX_FILE_NAME", "README");
 define("INDEX_FILE", INDEX_FILE_NAME . EXTENSION);
 
 function import_blocks_markup_from_directory($block_markup_path) {
@@ -89,8 +90,25 @@ function create_page($page, $parent_id=null, $author_id) {
         $page['name'] = basename(dirname($page['path']));
     }
 
+    $post_title = $page['name'];
+
+    // Source the page title from the first heading in the document.
+    $p = new WP_HTML_Tag_Processor($page['content']);
+    while($p->next_tag()) {
+        if(in_array($p->get_tag(), array('H1','H2','H3','H4','H5','H6'), true)) {
+            // Find the text node inside the heading
+            $p->next_token();
+            // Extract the text node content
+            $inner_text = trim($p->get_modifiable_text());
+            if($inner_text) {
+                $post_title = $inner_text;
+            }
+            break;
+        }
+    }
+
 	$post_id = wp_insert_post(array(
-		'post_title' => $page['name'],
+		'post_title' => $post_title,
 		'post_content' => $page['content'],
 		'post_status' => 'publish',
 		'post_type' => 'page',
