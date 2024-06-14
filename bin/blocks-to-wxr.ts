@@ -37,7 +37,12 @@ try {
 	).pathname;
 	const result = spawnSync('bash', [shellScriptPath, source, tempDir], {
 		stdio: 'inherit',
-	});
+    });
+    // Wait until the process exits
+    if (result.status !== 0) {
+        console.error('Error executing script:', result.error);
+        process.exit(1);
+    }
 	// Find the only ".xml" file in the temporary directory
 	const files = fs.readdirSync(tempDir);
 	const xmlFile = files.find((file) => path.extname(file) === '.xml');

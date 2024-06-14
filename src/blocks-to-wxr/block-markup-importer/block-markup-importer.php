@@ -8,7 +8,7 @@ define("EXTENSION", ".blockhtml");
 define("INDEX_FILE_NAME", "README");
 define("INDEX_FILE", INDEX_FILE_NAME . EXTENSION);
 
-function import_blocks_markup_from_directory($block_markup_path) {
+function import_static_files_from_directory($block_markup_path) {
 	$files = get_block_markup_files_to_import($block_markup_path);
 	$admin_id = get_admin_id();
 	create_pages($files, $admin_id);
