@@ -3,7 +3,7 @@
 MARKDOWN_PATH=$1
 SCRIPT_PATH="$(dirname "$(realpath "$0")")"
 
-#bun bin/convert.ts --from=markdown --to=block-markup --source=$MARKDOWN_PATH --target=$MARKDOWN_PATH
+# bun bin/convert.ts --from=markdown --to=block-markup --source=$MARKDOWN_PATH --target=$MARKDOWN_PATH
 
 # bunx @wp-playground/cli@latest \
 bun ../playground/packages/playground/cli/src/cli.ts \

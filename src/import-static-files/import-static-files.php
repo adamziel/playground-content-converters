@@ -83,6 +83,7 @@ function create_pages($pages, $author_id)
         } else {
             $parent_id = null;
         }
+        echo "Creating page: " . $page['path'] . " (parent: $parent_path, parent ID: ".$parent_id.")\n";
         $ids_by_path[$page['path']] = create_page($page, $parent_id, $author_id);
     }
     return $ids_by_path;
@@ -136,10 +137,11 @@ function sortByKeyLengthAndReadme(&$array) {
 
     usort($keys, function($a, $b) {
         // Bubble the index file to the top within the same directory
+        if (basename($a) === INDEX_FILE && basename($b) === INDEX_FILE) {
+            return strlen($a) <=> strlen($b);
+        }
         if (basename($a) === INDEX_FILE) return -1;
         if (basename($b) === INDEX_FILE) return 1;
-        
-        // Sort by key length
         return strlen($a) <=> strlen($b);
     });
 
