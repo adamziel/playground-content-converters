@@ -129,14 +129,14 @@ function create_page($page, $parent_id=null, $author_id) {
 
 	$post_id = wp_insert_post(array(
 		'post_title' => $post_title,
-		'post_content' => $page['content'],
+		'post_content' => wp_slash($page['content']),
 		'post_status' => 'publish',
 		'post_type' => 'page',
 		'post_parent' => $parent_id,
 		'post_author' => $author_id,
         'post_name' => $page['name'],
         'meta_input' => array(
-            'markdown_content' => $page['markdown'],
+            'markdown_content' => wp_slash($page['markdown']),
         ),
 	));
     

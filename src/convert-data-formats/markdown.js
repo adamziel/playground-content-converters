@@ -16,29 +16,64 @@ import * as commonmark from 'commonmark'
  */
 const frontMatterPattern = /---\s*\n(.*?)\n?(?:---|\.\.\.)\s*\n/sy;
 
-const htmlToMarkdown = html => {
+function escapeSpecialChars(text) {
+    return text.replace(/([_*~`\\])/g, '\\$1');
+  }
+  
+function htmlToMarkdown(html) {
     const node = document.createElement('div');
     node.innerHTML = html;
-
-    node.querySelectorAll('b, strong').forEach(
-        fontNode => fontNode.innerHTML = `**${fontNode.innerHTML}**`
-    );
-
-    node.querySelectorAll('i, em').forEach(
-        fontNode => fontNode.innerHTML = `*${fontNode.innerHTML}*`
-    );
-
-    node.querySelectorAll('code').forEach(
-        codeNode => codeNode.innerHTML = `\`${codeNode.innerHTML}\``
-    );
-
-    node.querySelectorAll('a').forEach(
-        // @todo Add link title.
-        linkNode => linkNode.outerHTML = `[${linkNode.innerText}](${linkNode.getAttribute('href')})`
-    );
-
-    return node.textContent;
-}
+    if (!node) return '';
+  
+    let result = '';
+  
+    function traverse(node) {
+      if (node.nodeType === Node.TEXT_NODE) {
+        result += escapeSpecialChars(node.textContent);
+      } else if (node.nodeType === Node.ELEMENT_NODE) {
+        switch (node.tagName.toLowerCase()) {
+          case 'b':
+          case 'strong':
+            result += '**';
+            traverseChildren(node);
+            result += '**';
+            break;
+          case 'i':
+          case 'em':
+            result += '*';
+            traverseChildren(node);
+            result += '*';
+            break;
+          case 'u':
+            result += '_';
+            traverseChildren(node);
+            result += '_';
+            break;
+          case 'code':
+            result += '`';
+            traverseChildren(node);
+            result += '`';
+            break;
+          case 'a':
+            result += '[';
+            traverseChildren(node);
+            result += `](${node.getAttribute('href')})`;
+            break;
+          default:
+            traverseChildren(node);
+            break;
+        }
+      }
+    }
+  
+    function traverseChildren(node) {
+      node.childNodes.forEach(traverse);
+    }
+  
+    traverse(node);
+    return result;
+  }
+    
 
 const blockToMarkdown = (state, block) => {
     /**
@@ -114,7 +149,7 @@ const blockToMarkdown = (state, block) => {
             return block.attributes.content;
         
         case 'core/image':
-            return `![${block.attributes.alt}](${block.attributes.url})`;
+            return `![${htmlToMarkdown(block.attributes.alt)}](${block.attributes.url})`;
 
         case 'core/heading':
             return '#'.repeat(block.attributes.level) + ' ' + htmlToMarkdown(block.attributes.content) + '\n\n';
@@ -212,7 +247,9 @@ const blockToMarkdown = (state, block) => {
  * @returns {string} Markdown output.
  */
 const blocksToMarkdown = (state, blocks) => {
-    return blocks.map(block => blockToMarkdown(state, block)).join('');
+    return blocks.map(block =>
+        blockToMarkdown(state, block)
+    ).join('');
 }
 
 export const blocks2markdown = blocks => {

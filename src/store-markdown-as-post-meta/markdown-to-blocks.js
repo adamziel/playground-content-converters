@@ -14,32 +14,8 @@
  */
 const frontMatterPattern = /---\s*\n(.*?)\n?(?:---|\.\.\.)\s*\n/sy;
 
-// const htmlToMarkdown = html => {
-//     const node = document.createElement('div');
-//     node.innerHTML = html;
-
-//     node.querySelectorAll('b, strong').forEach(
-//         fontNode => fontNode.innerHTML = `**${fontNode.innerHTML}**`
-//     );
-
-//     node.querySelectorAll('i, em').forEach(
-//         fontNode => fontNode.innerHTML = `*${fontNode.innerHTML}*`
-//     );
-
-//     node.querySelectorAll('code').forEach(
-//         codeNode => codeNode.innerHTML = `\`${codeNode.innerHTML}\``
-//     );
-
-//     node.querySelectorAll('a').forEach(
-//         // @todo Add link title.
-//         linkNode => linkNode.outerHTML = `[${linkNode.innerText}](${linkNode.getAttribute('href')})`
-//     );
-
-//     return node.textContent;
-// }
-
 function escapeSpecialChars(text) {
-    return text.replace(/([_*~`])/g, '\\$1');
+    return text.replace(/([_*~`\\])/g, '\\$1');
   }
   
 function htmlToMarkdown(html) {
@@ -65,6 +41,11 @@ function htmlToMarkdown(html) {
             result += '*';
             traverseChildren(node);
             result += '*';
+            break;
+          case 'u':
+            result += '_';
+            traverseChildren(node);
+            result += '_';
             break;
           case 'code':
             result += '`';
@@ -166,7 +147,7 @@ const blockToMarkdown = (state, block) => {
             return block.attributes.content;
         
         case 'core/image':
-            return `![${block.attributes.alt}](${block.attributes.url})`;
+            return `![${htmlToMarkdown(block.attributes.alt)}](${block.attributes.url})`;
 
         case 'core/heading':
             return '#'.repeat(block.attributes.level) + ' ' + htmlToMarkdown(block.attributes.content) + '\n\n';
@@ -264,7 +245,9 @@ const blockToMarkdown = (state, block) => {
  * @returns {string} Markdown output.
  */
 const blocksToMarkdown = (state, blocks) => {
-    return blocks.map(block => blockToMarkdown(state, block)).join('');
+    return blocks.map(block =>
+        blockToMarkdown(state, block)
+    ).join('');
 }
 
 export const blocks2markdown = blocks => {
