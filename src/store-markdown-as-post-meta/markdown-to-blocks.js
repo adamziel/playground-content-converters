@@ -14,29 +14,83 @@
  */
 const frontMatterPattern = /---\s*\n(.*?)\n?(?:---|\.\.\.)\s*\n/sy;
 
-const htmlToMarkdown = html => {
+// const htmlToMarkdown = html => {
+//     const node = document.createElement('div');
+//     node.innerHTML = html;
+
+//     node.querySelectorAll('b, strong').forEach(
+//         fontNode => fontNode.innerHTML = `**${fontNode.innerHTML}**`
+//     );
+
+//     node.querySelectorAll('i, em').forEach(
+//         fontNode => fontNode.innerHTML = `*${fontNode.innerHTML}*`
+//     );
+
+//     node.querySelectorAll('code').forEach(
+//         codeNode => codeNode.innerHTML = `\`${codeNode.innerHTML}\``
+//     );
+
+//     node.querySelectorAll('a').forEach(
+//         // @todo Add link title.
+//         linkNode => linkNode.outerHTML = `[${linkNode.innerText}](${linkNode.getAttribute('href')})`
+//     );
+
+//     return node.textContent;
+// }
+
+function escapeSpecialChars(text) {
+    return text.replace(/([_*~`])/g, '\\$1');
+  }
+  
+function htmlToMarkdown(html) {
     const node = document.createElement('div');
     node.innerHTML = html;
-
-    node.querySelectorAll('b, strong').forEach(
-        fontNode => fontNode.innerHTML = `**${fontNode.innerHTML}**`
-    );
-
-    node.querySelectorAll('i, em').forEach(
-        fontNode => fontNode.innerHTML = `*${fontNode.innerHTML}*`
-    );
-
-    node.querySelectorAll('code').forEach(
-        codeNode => codeNode.innerHTML = `\`${codeNode.innerHTML}\``
-    );
-
-    node.querySelectorAll('a').forEach(
-        // @todo Add link title.
-        linkNode => linkNode.outerHTML = `[${linkNode.innerText}](${linkNode.getAttribute('href')})`
-    );
-
-    return node.textContent;
-}
+    if (!node) return '';
+  
+    let result = '';
+  
+    function traverse(node) {
+      if (node.nodeType === Node.TEXT_NODE) {
+        result += escapeSpecialChars(node.textContent);
+      } else if (node.nodeType === Node.ELEMENT_NODE) {
+        switch (node.tagName.toLowerCase()) {
+          case 'b':
+          case 'strong':
+            result += '**';
+            traverseChildren(node);
+            result += '**';
+            break;
+          case 'i':
+          case 'em':
+            result += '*';
+            traverseChildren(node);
+            result += '*';
+            break;
+          case 'code':
+            result += '`';
+            traverseChildren(node);
+            result += '`';
+            break;
+          case 'a':
+            result += '[';
+            traverseChildren(node);
+            result += `](${node.getAttribute('href')})`;
+            break;
+          default:
+            traverseChildren(node);
+            break;
+        }
+      }
+    }
+  
+    function traverseChildren(node) {
+      node.childNodes.forEach(traverse);
+    }
+  
+    traverse(node);
+    return result;
+  }
+    
 
 const blockToMarkdown = (state, block) => {
     /**
