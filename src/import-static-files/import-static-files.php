@@ -29,10 +29,13 @@ function get_block_markup_files_to_import($dir) {
                         $nestedFiles = scan_directory($filePath);
                         $files = array_merge($files, $nestedFiles);
                     } elseif (str_ends_with(strtolower($file), EXTENSION)) {
-                        $markdown_path = substr($filePath, 0, -strlen(EXTENSION)) . '.md';
+                        $extensionless_path = substr($filePath, 0, -strlen(EXTENSION));
+                        $markdown_path = $extensionless_path . '.md';
                         $files[] = array(
                             'path' => $filePath,
-                            'name' => $file,
+                            'name' => str_ends_with($file, INDEX_FILE)
+                                ? basename(dirname($extensionless_path))
+                                : basename($extensionless_path),
                             'content' => file_get_contents($filePath),
                             'markdown' => file_get_contents($markdown_path),
                         );
@@ -90,10 +93,6 @@ function create_pages($pages, $author_id)
 }
 
 function create_page($page, $parent_id=null, $author_id) {
-    if (str_ends_with($page['path'], INDEX_FILE)) {
-        $page['name'] = basename(dirname($page['path']));
-    }
-
     $post_title = $page['name'];
 
     // Source the page title from the first heading in the document.
@@ -118,13 +117,13 @@ function create_page($page, $parent_id=null, $author_id) {
 		'post_type' => 'page',
 		'post_parent' => $parent_id,
 		'post_author' => $author_id,
+        'post_name' => $page['name'],
         'meta_input' => array(
             'markdown_content' => $page['markdown'],
         ),
 	));
     
     if (is_wp_error($post_id)) {
-        // echo('Failed to insert page: ' . $post_id->get_error_message());
         exit(1);
     }
 

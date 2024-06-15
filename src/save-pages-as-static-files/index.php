@@ -9,7 +9,7 @@ License: GPL2
 */
 
 if (!defined('STATIC_PAGES_PATH')) {
-    define('STATIC_PAGES_PATH', WP_CONTENT_DIR . '/static-pages/data');
+    define('STATIC_PAGES_PATH', '/data');
 }
 
 /**
@@ -41,7 +41,6 @@ add_action('save_post_page', function ($post_id) use(&$should_regenerate_docs) {
 function regenerate_static_files_after_request($response, $server) {
     if ($GLOBALS['should_regenerate_docs']) {
         docs_plugin_deltree(STATIC_PAGES_PATH);
-        mkdir(STATIC_PAGES_PATH);
         save_db_pages_as_static_files(STATIC_PAGES_PATH);
     }
 
@@ -49,22 +48,31 @@ function regenerate_static_files_after_request($response, $server) {
 }
 add_filter('rest_post_dispatch', 'regenerate_static_files_after_request', 10, 2);
 
-function docs_plugin_deltree($path) {
+function docs_plugin_deltree($path, $rmroot=false) {
     if (!file_exists($path)) {
         return;
     }
 
     $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($path), RecursiveIteratorIterator::CHILD_FIRST);
     foreach ($iterator as $file) {
+        $ext = pathinfo($file, PATHINFO_EXTENSION);
         /** @var SplFileInfo $file */
         if ($file->isDir()) {
-            rmdir($file->getRealPath());
+            // Only delete empty directories
+            if(scandir($file->getRealPath()) === array('.', '..')) {
+                rmdir($file->getRealPath());
+            }
         } else if($file->isFile()) {
-            unlink($file->getRealPath());
+            // Only delete markdown and blockhtml files
+            if ($ext === 'md' || $ext === 'blockhtml') {
+                unlink($file->getRealPath());
+            }
         }
     }
 
-    rmdir($path);
+    if ($rmroot) {
+        rmdir($path);
+    }
 }
 
 
@@ -91,7 +99,6 @@ function save_db_pages_as_static_files($path, $parent_id = 0) {
             $pages->the_post();
             $page_id = get_the_ID();
             $page = get_post($page_id);
-            $title = sanitize_title(get_the_title());
             
             $serialized_page = serialize_page($page_id);
 
@@ -113,14 +120,15 @@ function save_db_pages_as_static_files($path, $parent_id = 0) {
 
             $ext = $file_extensions[$serialized_page->format];
             if (!empty($child_pages)) {
-                $new_parent = $path . '/' . $title;
+                $new_parent = $path . '/' . $page->post_name;
                 if (!file_exists($new_parent)) {
                     mkdir($new_parent, 0777, true);
                 }
-                file_put_contents($new_parent . '/index.' . $ext, $serialized_page->content);
+                // INDEX_FILE_NAME is defined in the import-static-files plugin.
+                file_put_contents($new_parent . '/' . INDEX_FILE_NAME . '.' . $ext, $serialized_page->content);
                 save_db_pages_as_static_files($new_parent, $page_id);
             } else {
-                file_put_contents($path . '/' . $title . '.' . $ext, $serialized_page->content);
+                file_put_contents($path . '/' . $page->post_name . '.' . $ext, $serialized_page->content);
             }
         }
     }
