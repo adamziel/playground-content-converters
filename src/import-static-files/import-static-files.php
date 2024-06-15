@@ -8,6 +8,23 @@ define("EXTENSION", ".blockhtml");
 define("INDEX_FILE_NAME", "README");
 define("INDEX_FILE", INDEX_FILE_NAME . EXTENSION);
 
+// Disable KSES filters for all users
+remove_filter('content_save_pre', 'wp_filter_post_kses');
+remove_filter('content_filtered_save_pre', 'wp_filter_post_kses');
+remove_filter('excerpt_save_pre', 'wp_filter_post_kses');
+remove_filter('textarea_pre', 'wp_filter_kses');
+remove_filter('pre_comment_content', 'wp_filter_kses');
+remove_filter('title_save_pre', 'wp_filter_kses');
+
+// Allow unfiltered HTML for all users, including administrators and non-administrators
+function allow_unfiltered_html($caps, $cap, $user_id) {
+    if ($cap === 'unfiltered_html') {
+        $caps = array();
+    }
+    return $caps;
+}
+add_filter('map_meta_cap', 'allow_unfiltered_html', 1, 3);
+
 function import_static_files_from_directory($static_files_path) {
 	$files = get_block_markup_files_to_import($static_files_path);
 	$admin_id = get_admin_id();
