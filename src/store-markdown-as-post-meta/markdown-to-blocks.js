@@ -403,7 +403,7 @@ const nodeToBlock = (parentBlock, node) => {
                 }
             }
 
-            block.attributes.content = node.literal.replace(/\n/g, '<br>');
+            block.attributes.content = escapeHTML(node.literal).replace(/\n/g, '<br>');
             break;
 
         case 'html_block':
