@@ -7,15 +7,9 @@
 
 function enqueue_block_to_markdown_plugin() {
     wp_enqueue_script(
-        'commonmark',
-        plugin_dir_url(__FILE__) . 'commonmark.js',
-        array(),
-        filemtime(plugin_dir_path(__FILE__) . 'commonmark.js')
-    );
-    wp_enqueue_script(
         'block-to-markdown-saver',
         plugin_dir_url(__FILE__) . 'store-markdown-as-post-meta.js',
-        array('wp-blocks', 'wp-i18n', 'wp-element', 'wp-editor', 'wp-data', 'wp-compose', 'wp-hooks', 'commonmark'),
+        array('wp-blocks', 'wp-i18n', 'wp-element', 'wp-editor', 'wp-data', 'wp-compose', 'wp-hooks'),
         filemtime(plugin_dir_path(__FILE__) . 'store-markdown-as-post-meta.js')
     );
 }

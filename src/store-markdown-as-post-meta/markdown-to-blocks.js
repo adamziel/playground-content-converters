@@ -5,6 +5,8 @@
  * exercise left up to the reader.
  */
 
+const commonmark = await import('./commonmark.js');
+
 /**
  * Matches Jekyll-style front-matter at the start of a Markdown document.
  *
@@ -16,8 +18,8 @@ const frontMatterPattern = /---\s*\n(.*?)\n?(?:---|\.\.\.)\s*\n/sy;
 
 function escapeSpecialChars(text) {
     return text.replace(/([_*~`\\])/g, '\\$1');
-  }
-  
+}
+
 function htmlToMarkdown(html) {
     const node = document.createElement('div');
     node.innerHTML = html;
@@ -144,7 +146,7 @@ const blockToMarkdown = (state, block) => {
             return `\`\`\`${languageSpec}\n${code}\n\`\`\`\n\n`;
 
         case 'core/html':
-            return block.attributes.content;
+            return `${block.attributes.content}\n\n`;
         
         case 'core/image':
             return `![${htmlToMarkdown(block.attributes.alt)}](${block.attributes.url})`;
@@ -232,8 +234,7 @@ const blockToMarkdown = (state, block) => {
             return '\n---\n\n';
 
         default:
-            console.log(block);
-            return '';
+            return '```block\n' + escapeSpecialChars(window.wp.blocks.serialize(block)) + '\n```\n\n';
     }
 }
 
@@ -306,7 +307,7 @@ const nodeToBlock = (parentBlock, node) => {
         parentBlock.innerBlocks.push(block);
     }
 
-    const block = {
+    let block = {
         name: '',
         attributes: {},
         innerBlocks: [],
@@ -389,6 +390,19 @@ const nodeToBlock = (parentBlock, node) => {
             if ('string' === typeof node.info && '' !== node.info) {
                 block.attributes.language = node.info.replace(/[ \t\r\n\f].*/, '');
             }
+
+            // Allow storing arbitrary blocks.
+            if (block.attributes.language === 'block') {
+                console.log('node.literal', node.literal)
+                try {
+                    block = wp.blocks.parse(node.literal)[0];
+                    break;
+                } catch (e) {
+                    // Log error and proceed as if it was a regular code block.
+                    console.error(e);
+                }
+            }
+
             block.attributes.content = node.literal.replace(/\n/g, '<br>');
             break;
 
