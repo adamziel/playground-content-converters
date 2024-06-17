@@ -450,6 +450,59 @@ const nodeToBlock = (parentBlock, node) => {
     }
 }
 
+
+function parseMarkdownParagraph(markdown: string) {
+    let state = 'scan';
+
+    let at = 0;
+    while (true) {
+        let nextNewline = markdown.indexOf('\n', at);
+        if (-1 === nextNewline) {
+            break;
+        }
+        at = nextNewline + 1;
+        if (at + 1 >= markdown.length) {
+            break;
+        }
+
+        if (markdown[at] === '|') {
+
+
+        }
+    }
+
+
+
+    // Split the markdown into lines
+    const lines = markdown.split('\n').filter(line => line.trim() !== '');
+
+    // Check if there are at least three lines (header, separator, and one data row)
+    if (lines.length < 3) {
+        return null;
+    }
+
+    // Check if the second line is a valid separator
+    const separator = lines[1];
+    if (!/^(\s*\|\s*:?-+:?\s*)+$/.test(separator)) {
+        return null;
+    }
+
+    // Parse the header
+    const headers = lines[0].split('|').map(header => header.trim()).filter(header => header !== '');
+
+    // Parse the rows
+    const rows = lines.slice(2).map(line => {
+        const cells = line.split('|').map(cell => cell.trim());
+        const row: any = {};
+        headers.forEach((header, index) => {
+            row[header] = cells[index] || '';
+        });
+        return row;
+    });
+
+    return rows;
+}
+
 const inlineBlocksToHTML = (html, node) => {
     if (!node) {
         return html;
