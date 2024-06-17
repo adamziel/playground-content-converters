@@ -18,7 +18,8 @@ const { installTableExtension } = await import('./markdown-table-parser.ts');
 const frontMatterPattern = /---\s*\n(.*?)\n?(?:---|\.\.\.)\s*\n/sy;
 
 function escapeSpecialChars(text) {
-    return text.replace(/([_*~`\\])/g, '\\$1');
+    // @TODO escape ~
+    return text.replace(/([_*`\\])/g, '\\$1');
 }
 
 function htmlToMarkdown(html) {
@@ -386,6 +387,9 @@ const nodeToBlock = (parentBlock, node) => {
             block.name = 'core/table';
             block.attributes.head = [];
             block.attributes.body = [];
+            block.attributes.foot = [];
+            block.attributes.caption = "";
+            block.attributes.hasFixedLayout = false;
 
             let rowNode = node.firstChild;
             if (rowNode.type === 'table_head_row') {

@@ -163,6 +163,9 @@ exports[`markdownToBlocks should transform a markdown table 1`] = `
           ],
         },
       ],
+      "caption": "",
+      "foot": [],
+      "hasFixedLayout": false,
       "head": [
         {
           "cells": [
@@ -205,6 +208,9 @@ exports[`markdownToBlocks should parse a simple markdown table 1`] = `
           ],
         },
       ],
+      "caption": "",
+      "foot": [],
+      "hasFixedLayout": false,
       "head": [
         {
           "cells": [
@@ -236,6 +242,9 @@ exports[`markdownToBlocks should parse formats in a simple markdown table 1`] = 
           ],
         },
       ],
+      "caption": "",
+      "foot": [],
+      "hasFixedLayout": false,
       "head": [
         {
           "cells": [

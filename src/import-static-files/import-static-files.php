@@ -3,6 +3,8 @@
  * Plugin Name: Import static files to WordPress
  */
 
+require_once __DIR__ . '/playground-post-import-processor.php';
+
 define("EXTENSION", ".blockhtml");
 // define("INDEX_FILE_NAME", "01-index");
 define("INDEX_FILE_NAME", "README");
@@ -113,23 +115,63 @@ function create_page($page, $parent_id=null, $author_id) {
     $post_title = $page['name'];
 
     // Source the page title from the first heading in the document.
-    $p = new WP_HTML_Tag_Processor($page['content']);
-    while($p->next_tag()) {
-        if(in_array($p->get_tag(), array('H1','H2','H3','H4','H5','H6'), true)) {
-            // Find the text node inside the heading
-            $p->next_token();
-            // Extract the text node content
-            $inner_text = trim($p->get_modifiable_text());
-            if($inner_text) {
-                $post_title = $inner_text;
-            }
-            break;
+    $content = $page['content'];
+    $p = new Playground_Post_Import_Processor($content);
+    $seen_no_meaningful_content = true;
+    while($p->next_token()) {
+        $token_type = $p->get_token_type();
+        if(
+            $token_type === '#funky-comment' ||
+            $token_type === '#cdata-section' ||
+            ($token_type === '#comment' && str_starts_with($p->get_modifiable_text(), ' wp:heading ')) ||
+            ($token_type === '#text' && trim($p->get_modifiable_text()) === '')
+        ) {
+            continue;
         }
+        if(!in_array($p->get_tag(), array('H1','H2','H3','H4','H5','H6'), true)) {
+            $seen_no_meaningful_content = false;
+            continue;
+        }
+
+        $p->set_bookmark('start');
+
+        // Find the text node inside the heading
+        $p->next_token();
+
+        // Extract the text node content
+        $inner_text = trim($p->get_modifiable_text());
+        if($inner_text) {
+            $post_title = $inner_text;
+        }
+
+        if ($seen_no_meaningful_content) {
+            // If nothing other than the heading has been seen yet, we can remove
+            // the content up to the current token to avoid creating a post with
+            // duplication between the post title and the very first block (heading).
+            // 
+            // Let's look for the header closer within the next 3 tokens:
+            // * h1 closer
+            // * optional empty text node
+            // * the closing comment
+            for ($i = 0; $i < 3; $i++) {
+                $p->next_token();
+                if (
+                    $p->get_token_type() === '#comment' &&
+                    $p->get_modifiable_text() === ' /wp:heading '
+                ) {
+                    $bookmark = $p->get_token_indices();
+                    $content = substr($content, $bookmark->start + $bookmark->length);
+                    break;
+                }
+            }
+        }
+
+        break;
     }
 
 	$post_id = wp_insert_post(array(
 		'post_title' => $post_title,
-		'post_content' => wp_slash($page['content']),
+		'post_content' => wp_slash($content),
 		'post_status' => 'publish',
 		'post_type' => 'page',
 		'post_parent' => $parent_id,
