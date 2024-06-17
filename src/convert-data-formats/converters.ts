@@ -5,6 +5,10 @@ export async function ensureDOMPpolyfill() {
 	const dom = new JSDOM(`<!DOCTYPE html>`, { pretendToBeVisual: true });
 	(global as any).window = dom.window;
 	(global as any)['Node'] = dom.window.Node;
+	(global as any)['MutationObserver'] = class MutationObserver {
+		constructor() { }
+		observe() { }
+	};
 	(global as any).window.matchMedia = () => new EventTarget() as any;
 	(global as any).document = window.document;
 }

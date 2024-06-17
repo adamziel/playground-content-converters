@@ -1,58 +1,62 @@
-import { blocks2markdown } from './markdown-to-blocks';
-import { ensureDOMPpolyfill, ensureCoreBlocksRegistered } from '../convert-data-formats/converters';
-import { parse } from '@wordpress/blocks';
+import { markdownToBlocks } from './markdown-to-blocks';
+import { ensureDOMPpolyfill } from '../convert-data-formats/converters';
 
-describe('blocks2markdown', () => {
-    beforeAll(async () => {
-        await ensureDOMPpolyfill();
-        await ensureCoreBlocksRegistered();
-    });
-    it('should leave two blank lines after HTML blocks', () => {
-        const parsed = parse(`
-<!-- wp:html -->
-<img src="https://user-images.githubusercontent.com/3068563/108868727-428db880-75d5-11eb-84a9-2c0b749a22ad.png" alt="NVDA options with Speech viewer enabled" width="640">
-<!-- /wp:html -->
+describe('markdownToBlocks', () => {
+	beforeAll(async () => {
+		await ensureDOMPpolyfill();
+	});
 
-<!-- wp:paragraph -->
-<p>While in the Gutenberg editor, with NVDA activated, you can press &lt;kbd>Insert+F7&lt;/kbd> to open the Elements List where you can find elements grouped by their types, such as links, headings, form fields, buttons and landmarks.</p>
-<!-- /wp:paragraph -->
+	it('should transform a markdown page', () => {
+		const blocks = markdownToBlocks(`
+# Block Editor Handbook
+
+Welcome to the Block Editor Handbook.
+
+The [**Block Editor**](https://wordpress.org/gutenberg/) is a modern paradigm for WordPress site building and publishing. It uses a modular system of **blocks** to compose and format content and is designed to create rich and flexible layouts for websites and digital products.
+
+The Block Editor consists of several primary elements, as shown in the following figure:
+
+![Quick view of the Block Editor](https://raw.githubusercontent.com/WordPress/gutenberg/trunk/docs/assets/overview-block-editor-2023.png)
+
+The elements highlighted are:
+
+1. **Inserter:** A panel for inserting blocks into the content canvas
+2. **Content canvas:** The content editor, which holds content created with blocks
+3. **Settings Panel** A panel for configuring a block’s settings when selected or the settings of the post
+
         `);
-        const blocks = blocks2markdown(parsed);
-        expect(blocks).toEqual(`<img src="https://user-images.githubusercontent.com/3068563/108868727-428db880-75d5-11eb-84a9-2c0b749a22ad.png" alt="NVDA options with Speech viewer enabled" width="640">
+		expect(blocks).toMatchSnapshot();
+	});
 
-While in the Gutenberg editor, with NVDA activated, you can press <kbd>Insert+F7</kbd> to open the Elements List where you can find elements grouped by their types, such as links, headings, form fields, buttons and landmarks.
+	it('should transform a markdown table', () => {
+		const blocks = markdownToBlocks(`
+Generally speaking, [the following labels](https://github.com/WordPress/gutenberg/labels) are very useful:
 
-`);
-    });
+| Label                      | Reason                                                                                    |
+| -------------------------- | ----------------------------------------------------------------------------------------- |
+| \`[Type] Bug\`               | When an intended feature is broken.                                                       |
+| \`[Type] Enhancement\`       | When someone is suggesting an enhancement to a current feature.                           |
+| \`[Type] Help Request\`      | When someone is asking for general help with setup/implementation.                        |
+| \`Needs Technical Feedback\` | When you see new features or API changes proposed.                                        |
+| \`Needs More Info\`          | When it’s not clear what the issue is or it would help to provide additional details.     |
+| \`Needs Testing\`            | When a new issue needs to be confirmed or old bugs seem like they are no longer relevant. |
 
-    it('should store unserializable blocks as fenced code snippets', () => {
-        const parsed = parse(`
-        <!-- wp:columns -->
-        <div class="wp-block-columns"><!-- wp:column -->
-        <div class="wp-block-column"><!-- wp:paragraph -->
-        <p>I'm a paragraph</p>
-        <!-- /wp:paragraph --></div>
-        <!-- /wp:column -->
-        
-        <!-- wp:column -->
-        <div class="wp-block-column"><!-- wp:quote -->
-        <blockquote class="wp-block-quote"><!-- wp:paragraph -->
-        <p>I'm a quote!</p>
-        <!-- /wp:paragraph --></blockquote>
-        <!-- /wp:quote --></div>
-        <!-- /wp:column --></div>
-        <!-- /wp:columns -->
+[NVDA](https://www.nvaccess.org/about-nvda/) is a free screen reader for Windows.
         `);
-        const blocks = blocks2markdown(parsed);
-        expect(blocks).toEqual(
-            '```block\n' +
-            `<!-- wp:columns -->\n<div class=\"wp-block-columns\"><!-- wp:column -->\n` +
-            `<div class=\"wp-block-column\"><!-- wp:paragraph -->\n<p>I'm a paragraph</p>\n` +
-            `<!-- /wp:paragraph --></div>\n<!-- /wp:column -->\n\n<!-- wp:column -->\n` +
-            `<div class=\"wp-block-column\"><!-- wp:quote -->\n<blockquote class=\"wp-block-quote\">` +
-            `<!-- wp:paragraph -->\n<p>I'm a quote!</p>\n<!-- /wp:paragraph --></blockquote>\n` +
-            `<!-- /wp:quote --></div>\n<!-- /wp:column --></div>\n<!-- /wp:columns -->\n` +
-            '```\n\n'
-        );
-    });
+		expect(blocks).toMatchSnapshot();
+	});
+
+	it('should parse a simple markdown table', () => {
+		const blocks = markdownToBlocks(
+			[`| Label |`, `| ----- |`, `| Value |`].join('\n')
+		);
+		expect(blocks).toMatchSnapshot();
+	});
+
+	it('should parse formats in a simple markdown table', () => {
+		const blocks = markdownToBlocks(
+			[`| **Label** |`, `| ----- |`, `| V **a*l*u** e |`].join('\n')
+		);
+		expect(blocks).toMatchSnapshot();
+	});
 });

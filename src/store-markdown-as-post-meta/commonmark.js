@@ -2156,7 +2156,7 @@ var next = function() {
   if (cur === null) {
     return null;
   }
-  var container = isContainer(cur);
+  var container = cur.isContainer;
   if (entering && container) {
     if (cur._firstChild) {
       this.current = cur._firstChild;
@@ -2181,7 +2181,7 @@ var NodeWalker = function(root) {
     root,
     entering: true,
     next,
-    resumeAt
+    resumeAt,
   };
 };
 var Node = function(nodeType, sourcepos) {
@@ -2209,6 +2209,7 @@ var Node = function(nodeType, sourcepos) {
 };
 var proto = Node.prototype;
 Object.defineProperty(proto, "isContainer", {
+  configurable: true,
   get: function() {
     return isContainer(this);
   }
@@ -3878,7 +3879,11 @@ var incorporateLine = function(ln) {
   var startsLen = starts.length;
   while (!matchedLeaf) {
     this.findNextNonspace();
-    if (!this.indented && !reMaybeSpecial.test(ln.slice(this.nextNonspace))) {
+    if (
+      !this.indented &&
+      !reMaybeSpecial.test(ln.slice(this.nextNonspace)) &&
+      !(this.isMaybeSpecial && this.isMaybeSpecial(ln.slice(this.nextNonspace)))
+    ) {
       this.advanceNextNonspace();
       break;
     }
@@ -3935,7 +3940,7 @@ var processInlines = function(block) {
   while (event = walker.next()) {
     node3 = event.node;
     t = node3.type;
-    if (!event.entering && (t === "paragraph" || t === "heading")) {
+    if (!event.entering && (t === "paragraph" || t === "heading" || this.shouldInlineParse?.(t))) {
       this.inlineParser.parse(node3);
     }
   }

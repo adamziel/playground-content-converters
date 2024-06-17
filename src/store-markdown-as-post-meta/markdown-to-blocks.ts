@@ -6,6 +6,7 @@
  */
 
 const commonmark = await import('./commonmark.js');
+const { installTableExtension } = await import('./markdown-table-parser.ts');
 
 /**
  * Matches Jekyll-style front-matter at the start of a Markdown document.
@@ -162,6 +163,39 @@ const blockToMarkdown = (state, block) => {
             const list = blocksToMarkdown(state, block.innerBlocks);
             state.listStyle.pop();
             return `${list}\n\n`;
+        
+        case 'core/table':
+            const cellValueToMarkdown = cell => htmlToMarkdown(cell.content).replaceAll("|", "\\|")
+
+            const headRow = block.attributes.head[0].cells;
+            const headAlignments = headRow.map(cell => cell.align);
+            const head = headRow.map(cellValueToMarkdown)
+            const body = block.attributes.body.map(row => row.cells.map(cellValueToMarkdown));
+
+            const colWidths = [head, ...body].reduce((acc, cells) => {
+                cells.forEach((cell, i) => {
+                    acc[i] = Math.max(acc[i] || 0, cell.length);
+                });
+                return acc;
+            }, []);
+
+            const delimiters: any[] = [];
+            for (let i = 0; i < headAlignments.length; i++) {
+                const leftColon = headAlignments[i] === 'left' || headAlignments[i] === 'center' ? ':' : '';
+                const rightColon = headAlignments[i] === 'right' || headAlignments[i] === 'center' ? ':' : '';
+                const nbColons = (leftColon ? 1 : 0) + (rightColon ? 1 : 0);
+                const dashes = '-'.repeat(Math.max(colWidths[i] - nbColons, 1));
+                delimiters.push(leftColon + dashes + rightColon);
+            }
+            const formatRow = cells => {
+                return '| ' + cells.map((cell, i) => cell.padEnd(colWidths[i])).join(' | ') + ' |';
+            }
+
+            return [
+                formatRow(head),
+                formatRow(delimiters),
+                ...body.map(formatRow)
+            ].join('\n') + '\n\n';
 
         case 'core/list-item':
             if (0 === state.listStyle.length) {
@@ -212,7 +246,7 @@ const blockToMarkdown = (state, block) => {
             const bulletIndent = ' '.repeat(bullet.length + 1);
 
             // This hits sibling items and it shouldn't.
-            const [firstLine, restLines]= htmlToMarkdown(block.attributes.content).split('\n', 1);
+            const [firstLine, restLines] = htmlToMarkdown(block.attributes.content).split('\n', 1);
             if (0 === block.innerBlocks.length) {
                 let out = `${state.indent.join('')}${bullet} ${firstLine}`;
                 state.indent.push(bulletIndent);
@@ -307,7 +341,7 @@ const nodeToBlock = (parentBlock, node) => {
         parentBlock.innerBlocks.push(block);
     }
 
-    let block = {
+    let block: any = {
         name: '',
         attributes: {},
         innerBlocks: [],
@@ -347,7 +381,44 @@ const nodeToBlock = (parentBlock, node) => {
         case 'block_quote':
             block.name = 'core/quote';
             break;
+        
+        case 'table':
+            block.name = 'core/table';
+            block.attributes.head = [];
+            block.attributes.body = [];
 
+            let rowNode = node.firstChild;
+            if (rowNode.type === 'table_head_row') {
+                const cells: any = [];
+                let thNode = rowNode.firstChild;
+                while(thNode) {
+                    cells.push({
+                        content: inlineBlocksToHTML('', thNode.firstChild),
+                        tag: 'th'
+                    });
+                    thNode = thNode.next;
+                }
+                block.attributes.head.push({cells});
+                rowNode = rowNode.next;
+            }
+
+            while (rowNode) {
+                const cells: any = [];
+                let tdNode = rowNode.firstChild;
+                while (tdNode) {
+                    cells.push({
+                        content: inlineBlocksToHTML('', tdNode.firstChild),
+                        tag: 'td'
+                    });
+                    tdNode = tdNode.next;
+                }
+                block.attributes.body.push({cells});
+                rowNode = rowNode.next;
+            }
+
+            skipChildren = true;
+            break;
+        
         case 'item': {
             // @todo WordPress' list block doesn't support inner blocks.
             block.name = 'core/list-item';
@@ -439,7 +510,9 @@ const nodeToBlock = (parentBlock, node) => {
             console.log(node);
     }
 
-    add(block);
+    if (block.name !== '') {
+        add(block);
+    }
 
     if (!skipChildren && node.firstChild) {
         nodeToBlock(block, node.firstChild);
@@ -448,59 +521,6 @@ const nodeToBlock = (parentBlock, node) => {
     if (node.next) {
         nodeToBlock(parentBlock, node.next);
     }
-}
-
-
-function parseMarkdownParagraph(markdown: string) {
-    let state = 'scan';
-
-    let at = 0;
-    while (true) {
-        let nextNewline = markdown.indexOf('\n', at);
-        if (-1 === nextNewline) {
-            break;
-        }
-        at = nextNewline + 1;
-        if (at + 1 >= markdown.length) {
-            break;
-        }
-
-        if (markdown[at] === '|') {
-
-
-        }
-    }
-
-
-
-    // Split the markdown into lines
-    const lines = markdown.split('\n').filter(line => line.trim() !== '');
-
-    // Check if there are at least three lines (header, separator, and one data row)
-    if (lines.length < 3) {
-        return null;
-    }
-
-    // Check if the second line is a valid separator
-    const separator = lines[1];
-    if (!/^(\s*\|\s*:?-+:?\s*)+$/.test(separator)) {
-        return null;
-    }
-
-    // Parse the header
-    const headers = lines[0].split('|').map(header => header.trim()).filter(header => header !== '');
-
-    // Parse the rows
-    const rows = lines.slice(2).map(line => {
-        const cells = line.split('|').map(cell => cell.trim());
-        const row: any = {};
-        headers.forEach((header, index) => {
-            row[header] = cells[index] || '';
-        });
-        return row;
-    });
-
-    return rows;
 }
 
 const inlineBlocksToHTML = (html, node) => {
@@ -516,7 +536,7 @@ const inlineBlocksToHTML = (html, node) => {
             after
         );
 
-    const addTag = (tag, tagAttrs) => {
+    const addTag = (tag, tagAttrs = undefined) => {
         const attrs = tagAttrs
             ? (' ' + Object.entries(tagAttrs).filter(([, value]) => value !== null).map(([name, value]) => `${name}="${value}"`).join(' '))
             : '';
@@ -582,6 +602,7 @@ export const markdownToBlocks = input => {
     frontMatterPattern.lastIndex = 0;
 
     const parser = new commonmark.Parser();
+    installTableExtension(parser, commonmark.Node);
     const ast = parser.parse(markdownDocument);
     const blockRenderer = new WpBlocksRenderer({sourcepos: true});
 
