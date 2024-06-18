@@ -33,7 +33,7 @@ exports[`markdownToBlocks should transform a markdown page 1`] = `
   },
   {
     "attributes": {
-      "caption": "Quick view of the Block Editor",
+      "alt": "Quick view of the Block Editor",
       "url": "https://raw.githubusercontent.com/WordPress/gutenberg/trunk/docs/assets/overview-block-editor-2023.png",
     },
     "innerBlocks": [],

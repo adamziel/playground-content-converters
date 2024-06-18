@@ -1,9 +1,9 @@
-import { blocks2markdown } from './markdown-to-blocks';
+import { blocks2markdown, markdownToBlocks } from './markdown-to-blocks';
 import {
 	ensureDOMPpolyfill,
 	ensureCoreBlocksRegistered,
 } from '../convert-data-formats/converters';
-import { parse } from '@wordpress/blocks';
+import { parse, serialize, createBlock } from '@wordpress/blocks';
 
 describe('blocks2markdown', () => {
 	beforeAll(async () => {
@@ -60,7 +60,7 @@ While in the Gutenberg editor, with NVDA activated, you can press <kbd>Insert+F7
 		);
 	});
 
-	it.only('should serialize a table block as a markdown table', () => {
+	it('should serialize a table block as a markdown table', () => {
 		const parsed = parse(
 			`<!-- wp:table -->
         <figure class="wp-block-table"><table><thead><tr><th class="has-text-align-right" data-align="right"><em>Header left</em></th><th>Header right</th></tr></thead><tbody><tr><td class="has-text-align-right" data-align="right">row 1 col 1</td><td>row 1 col 2</td></tr><tr><td class="has-text-align-right" data-align="right">row 2 col 1</td><td>row 2 col 2</td></tr></tbody></table></figure>
@@ -80,4 +80,150 @@ While in the Gutenberg editor, with NVDA activated, you can press <kbd>Insert+F7
 			].join('\n') + '\n\n'
 		);
 	});
+
+	it('should escape special markdown characters inside paragraphs', () => {
+		const parsed = parse(
+			`<!-- wp:paragraph -->
+			<p>In the classic editor, notices hooked onto the admin_notices* action* can render whatever HTML they'd like.</p>
+			<!-- /wp:paragraph -->`
+		);
+		const markdown = blocks2markdown(parsed);
+		expect(markdown).toEqual(
+			'In the classic editor, notices hooked onto the admin\\_notices\\* action\\* can render whatever HTML they\'d like.\n\n'
+		);
+	});
+	
+	it('should not escape special characters inside inline code formats', () => {
+		const parsed = parse(
+			`<!-- wp:paragraph -->
+			<p>In the classic editor, notices hooked onto the <code>admin_notices*</code> action can render whatever HTML they'd like.</p>
+			<!-- /wp:paragraph -->`
+		);
+		const markdown = blocks2markdown(parsed);
+		expect(markdown).toEqual(
+			'In the classic editor, notices hooked onto the `admin_notices*` action can render whatever HTML they\'d like.\n\n'
+		);
+	});
+
+    const createBlocks = (blocks: any) =>
+        blocks.map((block: any) =>
+            createBlock(
+                block.name,
+                block.attributes,
+                block.innerBlocks ? createBlocks(block.innerBlocks) : []
+            )
+		);
+	
+	const testCases = [
+		{
+			description: 'should preserve inline code formats',
+			blocks: `<!-- wp:paragraph -->
+<p>In the classic editor, notices hooked onto the <code>admin_notices*</code> action can render whatever HTML they'd like.</p>
+<!-- /wp:paragraph -->`,
+			markdown: 'In the classic editor, notices hooked onto the `admin_notices*` action can render whatever HTML they\'d like.\n\n'
+		},
+		{
+			description: 'should preserve block code formats',
+			blocks: `<!-- wp:code -->
+<pre class="wp-block-code"><code>In the classic editor, notices hooked onto the admin_notices*</code></pre>
+<!-- /wp:code -->`,
+			markdown: '```\nIn the classic editor, notices hooked onto the admin_notices*\n```\n\n'
+		},
+		{
+			description: 'should preserve inline images',
+			blocks: `<!-- wp:paragraph -->
+<p>Inline image <img src="https://example.com/image.png" alt="Alt text"> After image</p>
+<!-- /wp:paragraph -->`,
+			markdown: `Inline image ![Alt text](https://example.com/image.png) After image\n\n`
+		},
+		{
+			description: 'should preserve block images with alt text',
+			blocks: `<!-- wp:image -->
+<figure class="wp-block-image"><img src="https://example.com/image.png" alt="Alt text"/></figure>
+<!-- /wp:image -->`,
+			markdown: `![Alt text](https://example.com/image.png)\n\n`
+		},
+		{
+			description: 'should preserve block images without alt text or title',
+			blocks: `<!-- wp:image -->
+<figure class="wp-block-image"><img src="https://example.com/image.png" alt=""/></figure>
+<!-- /wp:image -->`,
+			markdown: `![](https://example.com/image.png)\n\n`
+		},
+		{
+			description: 'should preserve block images with alt text containing special characters',
+			blocks: `<!-- wp:image -->
+<figure class="wp-block-image"><img src="https://example.com/image.png" alt="Alt *text"/></figure>
+<!-- /wp:image -->`,
+			markdown: `![Alt \\*text](https://example.com/image.png)\n\n`
+		},
+		{
+			description: 'should not escape special characters inside block code formats',
+			blocks: `<!-- wp:code -->
+<pre class="wp-block-code"><code>In the classic editor, notices hooked onto the admin_notices*</code></pre>
+<!-- /wp:code -->`,
+			markdown: '```\nIn the classic editor, notices hooked onto the admin_notices*\n```\n\n'
+		},
+		{
+			description: 'should preserve newlines at the end of code blocks',
+			blocks: `<!-- wp:code -->
+<pre class="wp-block-code"><code>In the classic editor, notices hooked onto the admin_notices*\n\n</code></pre>
+<!-- /wp:code -->`,
+			markdown: '```\nIn the classic editor, notices hooked onto the admin_notices*\n\n\n```\n\n'
+		},
+		{
+			description: 'should preserve special characters inside block code formats',
+			blocks: `<!-- wp:code -->
+<pre class="wp-block-code"><code>In the classic editor, \nnotices &lt;p> hooked onto the admin_notices*</code></pre>
+<!-- /wp:code -->`,
+			markdown: '```\nIn the classic editor, \nnotices <p> hooked onto the admin_notices*\n```\n\n'
+		},
+		{
+			description: 'should escape special markdown characters inside paragraphs',
+			blocks: `<!-- wp:paragraph -->
+<p>In the classic editor, notices hooked onto the admin_notices* action* can render whatever HTML they'd like.</p>
+<!-- /wp:paragraph -->`,
+			markdown: 'In the classic editor, notices hooked onto the admin\\_notices\\* action\\* can render whatever HTML they\'d like.\n\n'
+		},
+		{
+			description: 'should preserve block quotes',
+			blocks: `<!-- wp:quote -->
+<blockquote class="wp-block-quote"><!-- wp:paragraph -->
+<p>Block quote</p>
+<!-- /wp:paragraph --></blockquote>
+<!-- /wp:quote -->`,
+			markdown: '> Block quote\n> \n> \n\n'
+		},
+		{
+			description: 'should preserve double newline between images and paragraphs',
+			blocks: `<!-- wp:paragraph -->
+<p>Producing an equivalent "Post draft updated" notice would require code like below.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:image -->
+<figure class="wp-block-image"><img src="https://raw.githubusercontent.com/WordPress/gutenberg/HEAD/docs/how-to-guides/notices/classic-editor-notice.png" alt="Post draft updated in the classic editor"/></figure>
+<!-- /wp:image -->
+
+<!-- wp:paragraph -->
+<p>Producing an equivalent "Post draft updated" notice would require code like above.</p>
+<!-- /wp:paragraph -->`,
+			markdown: `Producing an equivalent "Post draft updated" notice would require code like below.
+
+![Post draft updated in the classic editor](https://raw.githubusercontent.com/WordPress/gutenberg/HEAD/docs/how-to-guides/notices/classic-editor-notice.png)
+
+Producing an equivalent "Post draft updated" notice would require code like above.\n\n`
+		}
+	]
+
+	for (const { description, blocks, markdown } of testCases) {
+		it('blocks -> markdown – ' + description, () => {
+			const parsed = parse(blocks);
+			const result = blocks2markdown(parsed);
+			expect(result).toEqual(markdown);
+		});
+		it('markdown -> blocks – ' + description, () => {
+			const result = serialize(createBlocks(markdownToBlocks(markdown)));
+			expect(result).toEqual(blocks);
+		});
+	}
 });

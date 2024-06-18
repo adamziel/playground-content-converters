@@ -8,9 +8,6 @@ Author: WordPress Contributors
 License: GPL2
 */
 
-if (!defined('STATIC_PAGES_PATH')) {
-    define('STATIC_PAGES_PATH', '/data');
-}
 
 /**
  * Placeholder site URL to be used in the exported static files.
@@ -28,7 +25,7 @@ $should_regenerate_docs = false;
 add_action('save_post_page', function ($post_id) use(&$should_regenerate_docs) {
     // Prevent collisions between the initial create_db_pages_from_static_files call
     // process and the save_post_page hook.
-    if (!get_option('docs_populated')) {
+    if (!get_option('static_files_imported')) {
         return;
     }
 
@@ -40,8 +37,8 @@ add_action('save_post_page', function ($post_id) use(&$should_regenerate_docs) {
 
 function regenerate_static_files_after_request($response, $server) {
     if ($GLOBALS['should_regenerate_docs']) {
-        docs_plugin_deltree(STATIC_PAGES_PATH);
-        save_db_pages_as_static_files(STATIC_PAGES_PATH);
+        docs_plugin_deltree(STATIC_FILES_ROOT);
+        save_db_pages_as_static_files(STATIC_FILES_ROOT);
     }
 
     return $response;
@@ -57,6 +54,9 @@ function docs_plugin_deltree($path, $rmroot=false) {
     foreach ($iterator as $file) {
         $ext = pathinfo($file, PATHINFO_EXTENSION);
         /** @var SplFileInfo $file */
+        if($file->getBasename() === '.' || $file->getBasename() === '..') {
+            continue;
+        }
         if ($file->isDir()) {
             // Only delete empty directories
             if(scandir($file->getRealPath()) === array('.', '..')) {
@@ -119,13 +119,13 @@ function save_db_pages_as_static_files($path, $parent_id = 0) {
             }
 
             $ext = $file_extensions[$serialized_page->format];
-            if (!empty($child_pages)) {
+            $is_index = !empty($child_pages) || get_post_meta($page_id, 'markdown_is_index', true);
+            if ($is_index) {
                 $new_parent = $path . '/' . $page->post_name;
                 if (!file_exists($new_parent)) {
                     mkdir($new_parent, 0777, true);
                 }
-                // INDEX_FILE_NAME is defined in the import-static-files plugin.
-                file_put_contents($new_parent . '/' . INDEX_FILE_NAME . '.' . $ext, $serialized_page->content);
+                file_put_contents($new_parent . '/README.' . $ext, $serialized_page->content);
                 save_db_pages_as_static_files($new_parent, $page_id);
             } else {
                 file_put_contents($path . '/' . $page->post_name . '.' . $ext, $serialized_page->content);

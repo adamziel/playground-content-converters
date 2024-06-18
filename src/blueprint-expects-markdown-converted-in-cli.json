@@ -3,6 +3,12 @@
     "login": true,
     "steps": [
         {
+            "step": "defineWpConfigConsts",
+            "consts": {
+                "STATIC_FILES_ROOT": "/data"
+            }
+        },
+        {
             "step": "activatePlugin",
             "pluginPath": "import-static-files/import-static-files.php"
         },
@@ -20,7 +26,7 @@
         },
         {
             "step": "runPHP",
-            "code": "<?php require '/wordpress/wp-load.php'; import_static_files_from_directory('/data'); "
+            "code": "<?php require '/wordpress/wp-load.php'; import_static_files_from_directory(STATIC_FILES_ROOT); "
         }
     ]
 }

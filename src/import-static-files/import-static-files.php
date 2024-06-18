@@ -5,11 +5,6 @@
 
 require_once __DIR__ . '/playground-post-import-processor.php';
 
-define("EXTENSION", ".blockhtml");
-// define("INDEX_FILE_NAME", "01-index");
-define("INDEX_FILE_NAME", "README");
-define("INDEX_FILE", INDEX_FILE_NAME . EXTENSION);
-
 // Disable KSES filters for all users
 remove_filter('content_save_pre', 'wp_filter_post_kses');
 remove_filter('content_filtered_save_pre', 'wp_filter_post_kses');
@@ -27,48 +22,56 @@ function allow_unfiltered_html($caps, $cap, $user_id) {
 }
 add_filter('map_meta_cap', 'allow_unfiltered_html', 1, 3);
 
-function import_static_files_from_directory($static_files_path) {
-	$files = get_block_markup_files_to_import($static_files_path);
+function import_static_files_from_directory($static_files_path, $options=array()) {
+	$files = get_static_files_to_import($static_files_path, $options=array());
 	$admin_id = get_admin_id();
 	create_pages($files, $admin_id);
     update_option('docs_populated', true);
 }
 
-function get_block_markup_files_to_import($dir) {
-    $files = array();
-    function scan_directory($dir) {
-        $files = array();
+function get_static_files_to_import($dir, $options = array())
+{
+    $options = wp_parse_args($options, array(
+        'index_file_name' => 'README.md',
+        'page_extension' => 'md',
+        'load_content_from_extensions' => ['md', 'blockhtml'],
+    ));
 
-        if (is_dir($dir)) {
-            $dh = opendir($dir);
-            while (($file = readdir($dh)) !== false) {
-                if ($file != "." && $file != "..") {
-                    $filePath = $dir . '/' . $file;
-                    if (is_dir($filePath)) {
-                        $nestedFiles = scan_directory($filePath);
-                        $files = array_merge($files, $nestedFiles);
-                    } elseif (str_ends_with(strtolower($file), EXTENSION)) {
-                        $extensionless_path = substr($filePath, 0, -strlen(EXTENSION));
-                        $markdown_path = $extensionless_path . '.md';
-                        $files[] = array(
-                            'path' => $filePath,
-                            'name' => str_ends_with($file, INDEX_FILE)
-                                ? basename(dirname($extensionless_path))
-                                : basename($extensionless_path),
-                            'content' => file_get_contents($filePath),
-                            'markdown' => file_get_contents($markdown_path),
-                        );
+    $files = array();
+
+    if (is_dir($dir)) {
+        $dh = opendir($dir);
+        while (($file = readdir($dh)) !== false) {
+            if ($file != "." && $file != "..") {
+                $filePath = $dir . '/' . $file;
+                if (is_dir($filePath)) {
+                    $nestedFiles = get_static_files_to_import($filePath);
+                    $files = array_merge($files, $nestedFiles);
+                } elseif (strtolower(pathinfo($filePath, PATHINFO_EXTENSION)) === $options['page_extension']) {
+                    $extensionless_path = remove_extension($filePath);
+                    $is_index = str_ends_with($file, $options['index_file_name']);
+                    $file = array(
+                        'is_index' => $is_index,
+                        'path' => $filePath,
+                        'name' => $is_index
+                            ? basename(dirname($extensionless_path))
+                            : basename($extensionless_path),
+                    );
+
+                    foreach($options['load_content_from_extensions'] as $ext) {
+                        if(file_exists($extensionless_path . '.' . $ext)) {
+                            $file[$ext] = file_get_contents($extensionless_path . '.' . $ext);
+                        }
                     }
+
+                    $files[] = $file;
                 }
             }
-            closedir($dh);
         }
-
-        return $files;
+        closedir($dh);
     }
 
-    $files = scan_directory($dir);
-	return $files;
+    return $files;
 }
 
 function get_admin_id() {
@@ -85,37 +88,65 @@ function get_admin_id() {
 	}
 }
 
-function create_pages($pages, $author_id)
+function create_pages($pages, $options = array())
 {
+    $options = wp_parse_args($options, array(
+        'author_id' => null,
+        'index_file_name' => 'README.md',
+        'page_extension' => 'md',
+    ));
+    if(!$options['author_id']) {
+        $options['author_id'] = get_admin_id();
+    }
+
     $by_path = [];
     foreach($pages as $page) {
         $by_path[$page['path']] = $page;
     }
-    sortByKeyLengthAndReadme($by_path);
+    sortByIndexAndKeyLength($by_path);
 
     $ids_by_path = [];
     foreach($by_path as $page) {
-        if(str_ends_with($page['path'], '/' . INDEX_FILE)) {
-            $parent_path = dirname(dirname($page['path'])) . '/' . INDEX_FILE;
+        if($page['is_index']) {
+            $parent_path = dirname(dirname($page['path'])) . '/' . $options['index_file_name'];
         } else {
-            $parent_path = dirname($page['path']) . '/' . INDEX_FILE;
+            $parent_path = dirname($page['path']) . '/' . $options['index_file_name'];
         }
         if (isset($ids_by_path[$parent_path])) {
             $parent_id = $ids_by_path[$parent_path];
         } else {
             $parent_id = null;
         }
-        echo "Creating page: " . $page['path'] . " (parent: $parent_path, parent ID: ".$parent_id.")\n";
-        $ids_by_path[$page['path']] = create_page($page, $parent_id, $author_id);
+        // Relevant in CLI but not in a REST API endpoint:
+        // echo "Creating page: " . $page['path'] . " (parent: $parent_path, parent ID: ".$parent_id.")\n";
+        $ids_by_path[$page['path']] = create_page($page, array(
+            'parent_id' => $parent_id,
+            'author_id' => $options['author_id'],
+        ));
     }
+    
     return $ids_by_path;
 }
 
-function create_page($page, $parent_id=null, $author_id) {
+function remove_extension($path) {
+    $path_parts = pathinfo($path);
+    return $path_parts['dirname'] . (str_contains( $path, '/' ) ? '/' : '') . $path_parts['filename'];
+}
+
+function create_page($page, $options = array())
+{
+    $options = wp_parse_args($options, array(
+        'parent_id' => null,
+        'author_id' => null
+    ));
+    if(!$options['author_id']) {
+        $options['author_id'] = get_admin_id();
+    }
+
     $post_title = $page['name'];
 
     // Source the page title from the first heading in the document.
-    $content = $page['content'];
+    $content = $page['blockhtml'];
     $p = new Playground_Post_Import_Processor($content);
     $seen_no_meaningful_content = true;
     while($p->next_token()) {
@@ -174,11 +205,12 @@ function create_page($page, $parent_id=null, $author_id) {
 		'post_content' => wp_slash($content),
 		'post_status' => 'publish',
 		'post_type' => 'page',
-		'post_parent' => $parent_id,
-		'post_author' => $author_id,
+		'post_parent' => $options['parent_id'],
+		'post_author' => $options['author_id'],
         'post_name' => $page['name'],
         'meta_input' => array(
-            'markdown_content' => wp_slash($page['markdown']),
+            'markdown_content' => wp_slash($page['md']),
+            'markdown_is_index' => $page['is_index'],
         ),
 	));
     
@@ -189,17 +221,17 @@ function create_page($page, $parent_id=null, $author_id) {
 	return $post_id;
 }
 
-function sortByKeyLengthAndReadme(&$array) {
+function sortByIndexAndKeyLength(&$array) {
     // Step 1: Extract the keys and sort them
     $keys = array_keys($array);
 
-    usort($keys, function($a, $b) {
+    usort($keys, function($a, $b) use($array) {
         // Bubble the index file to the top within the same directory
-        if (basename($a) === INDEX_FILE && basename($b) === INDEX_FILE) {
+        if ($array[$a]['is_index'] && $array[$b]['is_index']) {
             return strlen($a) <=> strlen($b);
         }
-        if (basename($a) === INDEX_FILE) return -1;
-        if (basename($b) === INDEX_FILE) return 1;
+        if ($array[$a]['is_index']) return -1;
+        if ($array[$b]['is_index']) return 1;
         return strlen($a) <=> strlen($b);
     });
 

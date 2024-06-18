@@ -6,6 +6,7 @@ describe('markdownToBlocks', () => {
 		await ensureDOMPpolyfill();
 	});
 
+
 	it('should transform a markdown page', () => {
 		const blocks = markdownToBlocks(`
 # Block Editor Handbook
@@ -58,5 +59,37 @@ Generally speaking, [the following labels](https://github.com/WordPress/gutenber
 			[`| **Label** |`, `| ----- |`, `| V **a*l*u** e |`].join('\n')
 		);
 		expect(blocks).toMatchSnapshot();
+	});
+
+	it('should preserve img alt text in inline images', () => {
+		const blocks = markdownToBlocks(
+			`Inline image ![Alt text](https://example.com/image.png "Image Title")`
+		);
+		expect(blocks).toEqual([
+			{
+				name: 'core/paragraph',
+				attributes: {
+					content: `Inline image <img src="https://example.com/image.png" title="Image Title" alt="Alt text">`
+				},
+				innerBlocks: [],
+			},
+		]);
+	});
+
+	it('should preserve img alt text and caption in block images', () => {
+		const blocks = markdownToBlocks(
+			`![Alt text](https://example.com/image.png "Image Title")`
+		);
+		expect(blocks).toEqual([
+			{
+				name: 'core/image',
+				attributes: {
+					url: 'https://example.com/image.png',
+					alt: 'Alt text',
+					caption: 'Image Title'
+				},
+				innerBlocks: [],
+			},
+		]);
 	});
 });

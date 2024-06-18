@@ -113,7 +113,7 @@ const convertFileFormat = async (args: CliOptions) => {
 	const mapper = pipelines[args.from][args.to];
 
 	if (isDirectory) {
-		const inputDir = path.normalize(args.source);
+		const inputDir = path.normalize(args.source!);
 		const filesPaths = iterateDirectory(inputDir);
 		const inputExtension = formats[args.from].extensions[0];
 		const outputExtension = formats[args.to].extensions[0];
@@ -130,7 +130,7 @@ const convertFileFormat = async (args: CliOptions) => {
 
 			console.log(`Converting ${relativePath}`);
 
-			let outputPath = path.join(args.target, relativePath);
+			let outputPath = path.join(args.target!, relativePath);
 			const lastDot = outputPath.lastIndexOf('.');
 			outputPath = outputPath.substring(0, lastDot) + outputExtension;
 

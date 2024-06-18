@@ -22,6 +22,11 @@ function register_markdown_meta() {
         'single'       => true,
         'type'         => 'string',
     ));
+    register_post_meta('page', 'markdown_is_index', array(
+        'show_in_rest' => true,
+        'single'       => true,
+        'type'         => 'boolean',
+    ));
 }
 
 add_action('init', 'register_markdown_meta');
