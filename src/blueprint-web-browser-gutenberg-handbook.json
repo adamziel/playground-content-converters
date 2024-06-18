@@ -1,7 +1,7 @@
 {
 	"$schema": "https://playground.wordpress.net/blueprint-schema.json",
 	"login": true,
-	"landingPage": "/wp-admin/post-new.php",
+	"landingPage": "/wp-admin/?markdown-file-path=docs/contributors/accessibility-testing.md",
 	"steps": [
 		{
 			"step": "unzip",
@@ -13,8 +13,12 @@
 			}
 		},
 		{
+			"step": "mkdir",
+			"path": "/wordpress/wp-content/static-content"
+		},
+		{
 			"step": "unzip",
-			"extractToPath": "/wordpress/wp-content/",
+			"extractToPath": "/wordpress/wp-content/static-content",
 			"zipFile": {
 				"resource": "url",
 				"url": "https://github-proxy.com/proxy/?repo=wordpress/gutenberg&directory=docs",
@@ -24,7 +28,7 @@
 		{
 			"step": "defineWpConfigConsts",
 			"consts": {
-				"STATIC_FILES_ROOT": "/wordpress/wp-content/docs"
+				"STATIC_FILES_ROOT": "/wordpress/wp-content/static-content"
 			}
 		},
 		{
