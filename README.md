@@ -5,7 +5,7 @@ This experimental repo explores:
 * Converting data between WordPress blocks and popular formats (e.g., Markdown).
 * Editing those static files using the WordPress block editor.
 
-[<kbd> <br>Demo: Edit Gutenberg Handbook in the browser<br> </kbd>](https://playground.wordpress.net?blueprint-url=https://raw.githubusercontent.com/adamziel/playground-content-converters/trunk/src/blueprint-web-browser-gutenberg-handbook.json)
+[<kbd> <br>Demo: Edit Gutenberg Handbook in the browser<br> </kbd>](https://playground.wordpress.net?blueprint-url=https://raw.githubusercontent.com/adamziel/playground-content-converters/explore-markdown-editor-setup/src/blueprint-web-browser-gutenberg-handbook.json)
 
 ## Setup
 
