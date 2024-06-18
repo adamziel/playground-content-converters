@@ -47,7 +47,7 @@
 		const blocks = createBlocks(markdownToBlocks(file.md));
 		pagesWithBlockMarkup.push({
 			...file,
-			"blockhtml": wp.blocks.serialize(blocks),
+			blockhtml: wp.blocks.serialize(blocks),
 		});
 	}
 
@@ -66,8 +66,26 @@
 		console.log(await response.text());
 	} catch {}
 
-	// Redirect to the pages list
-	window.location.href = '/wp-admin/edit.php?post_type=page';
+	// Redirect to the page we were on before the import process started
+	let returnTo = new URL(window.location.href).searchParams.get(
+		'markdown_import_return_to'
+	);
+	while (true) {
+		let search;
+		try {
+			search = new URL(returnTo).searchParams;
+		} catch (e) {
+			break;
+		}
+		if (!search.has('markdown_import_return_to')) {
+			break;
+		}
+		returnTo = search.get('markdown_import_return_to');
+	}
 
-	// endLoading();
+	if (!returnTo) {
+		returnTo = '/wp-admin/edit.php?post_type=page';
+	}
+
+	window.location.href = returnTo;
 })();

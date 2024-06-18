@@ -7,7 +7,7 @@ body.playground-markdown-loading::before {
 	width: 100%;
 	height: 100%;
 	background: white;
-	z-index: 9999;
+	z-index: 999999999998;
 	justify-content: center;
 	align-items: center;
 	font-weight: 400;
@@ -28,7 +28,13 @@ body.playground-markdown-loading::after {
 	display: flex;
 	align-items: center;
 	border-radius: 10px;
-	z-index: 10000;
+	z-index: 999999999999;
 	margin: 4px auto;
 	transform: translate(-50%, 30px);
+}
+
+/* Hide everything else while importing Markdown */
+body.playground-markdown-loading > :not(body::after, body::before) {
+	display: none;
+	pointer-events: none;
 }

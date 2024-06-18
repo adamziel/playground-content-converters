@@ -78,7 +78,10 @@ function check_static_files_imported() {
         strpos($_SERVER['REQUEST_URI'], 'post-new.php?post_type=page') === false
     ) {
         // Redirect to /wp-admin/post-new.php?post_type=page
-        wp_redirect(admin_url('post-new.php?post_type=page'));
+        $return_to = http_build_query(array(
+            'markdown_import_return_to' => $_SERVER['REQUEST_URI']
+        ));
+        wp_redirect(admin_url('post-new.php?post_type=page&' . $return_to));
         exit;
     }
 }
@@ -93,7 +96,10 @@ function check_static_files_imported_frontend() {
         !get_option('static_files_imported')
     ) {
         // Redirect to /wp-admin/post-new.php?post_type=page
-        wp_redirect(admin_url('post-new.php?post_type=page'));
+        $return_to = http_build_query(array(
+            'markdown_import_return_to' => $_SERVER['REQUEST_URI']
+        ));
+        wp_redirect(admin_url('post-new.php?post_type=page&' . $return_to));
         exit;
     }
 }
