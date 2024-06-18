@@ -5,7 +5,7 @@ This experimental repo explores:
 * Converting data between WordPress blocks and popular formats (e.g., Markdown).
 * Editing those static files using the WordPress block editor.
 
-[<kbd> <br>Demo: Edit Gutenberg Handbook in the browser<br> </kbd>](https://playground.wordpress.net/?gh-ensure-auth=yes&ghexport-repo-url=https%3A%2F%2Fgithub.com%2Fwordpress%2Fgutenberg&ghexport-content-type=custom-paths&ghexport-path=docs&ghexport-commit-message=Documentation+update&ghexport-playground-root=%2Fwordpress%2Fwp-content%2Fstatic-files/docs&ghexport-repo-root=%2Fdocs&blueprint-url=https://raw.githubusercontent.com/adamziel/playground-content-converters/21ecd28/src/blueprint-web-browser-gutenberg-handbook.json&ghexport-pr-action=create&ghexport-allow-include-zip=no)
+[<kbd> <br>Demo: Edit Gutenberg Handbook in the browser<br> </kbd>](https://playground.wordpress.net/?gh-ensure-auth=yes&ghexport-repo-url=https%3A%2F%2Fgithub.com%2Fwordpress%2Fgutenberg&ghexport-content-type=custom-paths&ghexport-path=.&ghexport-commit-message=Documentation+update&ghexport-playground-root=%2Fwordpress%2Fwp-content%2Fstatic-content%2Fdocs&ghexport-repo-root=%2Fdocs&blueprint-url=https://raw.githubusercontent.com/adamziel/playground-content-converters/21ecd28/src/blueprint-web-browser-gutenberg-handbook.json&ghexport-pr-action=create&ghexport-allow-include-zip=no)
 
 ## Setup
 
