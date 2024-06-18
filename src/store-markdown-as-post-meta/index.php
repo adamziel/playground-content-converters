@@ -17,6 +17,11 @@ function enqueue_block_to_markdown_plugin() {
 add_action('enqueue_block_editor_assets', 'enqueue_block_to_markdown_plugin');
 
 function register_markdown_meta() {
+    register_post_meta('page', 'markdown_original_path', array(
+        'show_in_rest' => true,
+        'single'       => true,
+        'type'         => 'string',
+    ));
     register_post_meta('page', 'markdown_content', array(
         'show_in_rest' => true,
         'single'       => true,

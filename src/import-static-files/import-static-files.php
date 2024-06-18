@@ -37,40 +37,46 @@ function get_static_files_to_import($dir, $options = array())
         'load_content_from_extensions' => ['md', 'blockhtml'],
     ));
 
-    $files = array();
+    function find_files($dir, $options) {
+        $files = array();
+        if (is_dir($dir)) {
+            $dh = opendir($dir);
+            while (($file = readdir($dh)) !== false) {
+                if ($file != "." && $file != "..") {
+                    $filePath = $dir . '/' . $file;
+                    if (is_dir($filePath)) {
+                        $nestedFiles = find_files($filePath, $options);
+                        $files = array_merge($files, $nestedFiles);
+                    } elseif (strtolower(pathinfo($filePath, PATHINFO_EXTENSION)) === $options['page_extension']) {
+                        $extensionless_path = remove_extension($filePath);
+                        $is_index = str_ends_with($file, $options['index_file_name']);
+                        $file = array(
+                            'is_index' => $is_index,
+                            'path' => $filePath,
+                            'name' => $is_index
+                                ? basename(dirname($extensionless_path))
+                                : basename($extensionless_path),
+                        );
 
-    if (is_dir($dir)) {
-        $dh = opendir($dir);
-        while (($file = readdir($dh)) !== false) {
-            if ($file != "." && $file != "..") {
-                $filePath = $dir . '/' . $file;
-                if (is_dir($filePath)) {
-                    $nestedFiles = get_static_files_to_import($filePath);
-                    $files = array_merge($files, $nestedFiles);
-                } elseif (strtolower(pathinfo($filePath, PATHINFO_EXTENSION)) === $options['page_extension']) {
-                    $extensionless_path = remove_extension($filePath);
-                    $is_index = str_ends_with($file, $options['index_file_name']);
-                    $file = array(
-                        'is_index' => $is_index,
-                        'path' => $filePath,
-                        'name' => $is_index
-                            ? basename(dirname($extensionless_path))
-                            : basename($extensionless_path),
-                    );
-
-                    foreach($options['load_content_from_extensions'] as $ext) {
-                        if(file_exists($extensionless_path . '.' . $ext)) {
-                            $file[$ext] = file_get_contents($extensionless_path . '.' . $ext);
+                        foreach ($options['load_content_from_extensions'] as $ext) {
+                            if (file_exists($extensionless_path . '.' . $ext)) {
+                                $file[$ext] = file_get_contents($extensionless_path . '.' . $ext);
+                            }
                         }
-                    }
 
-                    $files[] = $file;
+                        $files[] = $file;
+                    }
                 }
             }
+            closedir($dh);
         }
-        closedir($dh);
-    }
+        return $files;
+    };
 
+    $files = find_files($dir, $options);
+    foreach ($files as $k => $file) {
+        $files[$k]['path'] = substr($file['path'], strlen($dir) + 1);
+    }
     return $files;
 }
 
@@ -210,6 +216,7 @@ function create_page($page, $options = array())
         'post_name' => $page['name'],
         'meta_input' => array(
             'markdown_content' => wp_slash($page['md']),
+            'markdown_original_path' => $page['path'],
             'markdown_is_index' => $page['is_index'],
         ),
 	));
@@ -243,3 +250,32 @@ function sortByIndexAndKeyLength(&$array) {
 
     $array = $sorted;
 }
+
+
+// Redirect to page edit page by its meta key markdown_original_path
+function redirect_to_page_edit_page() {
+    if(!is_user_logged_in()) {
+        return;
+    }
+    if(!isset($_GET['markdown-file-path'])) {
+        return;
+    }
+    
+    $args = array(
+        'meta_key' => 'markdown_original_path',
+        'meta_value' => $_GET['markdown-file-path'],
+        'post_type' => 'page',
+        'post_status' => 'any',
+        'posts_per_page' => -1
+    );
+    $posts = get_posts($args);
+    if(count($posts) === 0) {
+        return;
+    }
+
+    $post_id = $posts[0]->ID;
+    wp_redirect(admin_url('post.php?post=' . $post_id . '&action=edit'));
+    exit;    
+}
+add_action('admin_init', 'redirect_to_page_edit_page');
+
