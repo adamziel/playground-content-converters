@@ -1,10 +1,13 @@
-# Content Converters
+# Static File Editor
 
-This experimental repo explores moving data between WordPress and popular formats.
+This experimental repo explores:
 
-It uses PHP and JavaScript to do the conversion.
+* Converting data between WordPress blocks and popular formats (e.g., Markdown).
+* Editing those static files using the WordPress block editor.
 
-## Installation
+[<kbd> <br>Demo: Edit Gutenberg Handbook in the browser<br> </kbd>](https://playground.wordpress.net/?gh-ensure-auth=yes&ghexport-repo-url=https%3A%2F%2Fgithub.com%2Fwordpress%2Fgutenberg&ghexport-content-type=custom-paths&ghexport-path=.&ghexport-commit-message=Documentation+update&ghexport-playground-root=%2Fwordpress%2Fwp-content%2Fstatic-content%2Fdocs&ghexport-repo-root=%2Fdocs&blueprint-url=https://raw.githubusercontent.com/adamziel/playground-content-converters/21ecd28/src/blueprint-web-browser-gutenberg-handbook.json&ghexport-pr-action=create&ghexport-allow-include-zip=no)
+
+## Setup
 
 Use [Bun](https://bun.sh/) to work with project. 
 
@@ -16,9 +19,32 @@ Once you have Bun installed, you can install the project dependencies:
 
 Congrats, you're all set!
 
-## Usage
+## Starting the editor
 
+To edit the example markdown file structure in the `markdown` directory, they need to be converted to blocks first. Here's two 
+
+### Convert .md -> blocks in the CLI
+
+To start the editor, run the following command:
+
+```shell
+# To convert .md -> Blocks in CLI and then start Playground:
+$ bash src/run-markdown-editor-convert-markdown-in-cli.sh ./markdown
+
+# To start Playground and convert .md -> Blocks using browser as the 
+# JavaScript runtime:
+$ bash src/run-markdown-editor-convert-markdown-in-browser.sh ./markdown
+# And then go to http://127.0.0.1:9400/wp-admin/post-new.php to finish
+# the conversion process.
 ```
+
+## Converting Formats
+
+`bun bin/convert.ts` is a CLI tool that converts between data formats.
+
+```shell
+$ bun bin/convert.ts
+
 Options:
   --from     Input format
                        [string] [required] [choices: "markdown", "block-markup"]
@@ -29,13 +55,9 @@ Options:
                                                                         [string]
 ```
 
-## Examples
+Keep reading for examples of how to use this tool.
 
 ### Markdown to Blocks
-
-md-to-blocks.ts converts a single markdown file into block markup. Kudos to @dmsnell who made it possible in https://github.com/dmsnell/blocky-formats.
-
-Example:
 
 ```shell
 $ echo '# Hello, world!' > hello.md
@@ -45,15 +67,17 @@ $ bun bin/convert.ts --source=inputs/markdown/hello.md --from=markdown --to=bloc
 <!-- /wp:heading -->
 ```
 
-### Blocks to Markdown
+Kudos to @dmsnell who made it possible in https://github.com/dmsnell/blocky-formats.
 
-blocks-to-md.ts converts a single block markup file into markdown. Kutos to @dmsnell who made it possible in https://github.com/dmsnell/blocky-formats. For example:
+### Blocks to Markdown
 
 ```shell
 $ echo '<!-- wp:heading {"level":1} --><h1 class="wp-block-heading">Hello, world!</h1><!-- /wp:heading -->' | bun bin/convert.ts --from=block-markup --to=markdown
 # Hello, world!
 
 ```
+
+Kudos to @dmsnell who made it possible in https://github.com/dmsnell/blocky-formats.
 
 ### Blocks to WXR
 

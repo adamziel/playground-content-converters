@@ -3,18 +3,18 @@
  * Plugin Name: Blocks to WordPress
  */
 
-define("EXTENSION", ".blockhtml");
+define("EXTENSION", ".md");
 // define("INDEX_FILE_NAME", "01-index");
 define("INDEX_FILE_NAME", "README");
 define("INDEX_FILE", INDEX_FILE_NAME . EXTENSION);
 
-function import_blocks_markup_from_directory($block_markup_path) {
-	$files = get_block_markup_files_to_import($block_markup_path);
+function import_static_files_from_directory($block_markup_path) {
+	$files = get_static_files_to_import($block_markup_path);
 	$admin_id = get_admin_id();
 	create_pages($files, $admin_id);
 }
 
-function get_block_markup_files_to_import($dir) {
+function get_static_files_to_import($dir) {
     $files = array();
     function scan_directory($dir) {
         $files = array();
@@ -66,7 +66,7 @@ function create_pages($pages, $author_id)
     foreach($pages as $page) {
         $by_path[$page['path']] = $page;
     }
-    sortByKeyLengthAndReadme($by_path);
+    sortByIndexAndKeyLength($by_path);
 
     $ids_by_path = [];
     foreach($by_path as $page) {
@@ -124,7 +124,7 @@ function create_page($page, $parent_id=null, $author_id) {
 	return $post_id;
 }
 
-function sortByKeyLengthAndReadme(&$array) {
+function sortByIndexAndKeyLength(&$array) {
     // Step 1: Extract the keys and sort them
     $keys = array_keys($array);
 

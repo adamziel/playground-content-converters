@@ -1,0 +1,32 @@
+{
+    "$schema": "https://playground.wordpress.net/blueprint-schema.json",
+    "login": true,
+    "steps": [
+        {
+            "step": "defineWpConfigConsts",
+            "consts": {
+                "STATIC_FILES_ROOT": "/data"
+            }
+        },
+        {
+            "step": "activatePlugin",
+            "pluginPath": "import-static-files/import-static-files.php"
+        },
+        {
+            "step": "activatePlugin",
+            "pluginPath": "store-markdown-as-post-meta/index.php"
+        },
+        {
+            "step": "activatePlugin",
+            "pluginPath": "save-pages-as-static-files/index.php"
+        },
+        {
+            "step": "runPHP",
+            "code": "<?php require '/wordpress/wp-load.php'; $GLOBALS['@pdo']->query('DELETE FROM wp_posts WHERE id > 0'); $GLOBALS['@pdo']->query(\"UPDATE SQLITE_SEQUENCE SET SEQ=0 WHERE NAME='wp_posts'\");  $GLOBALS['@pdo']->query('DELETE FROM wp_postmeta WHERE post_id > 1'); $GLOBALS['@pdo']->query(\"UPDATE SQLITE_SEQUENCE SET SEQ=20 WHERE NAME='wp_postmeta'\"); $GLOBALS['@pdo']->query('DELETE FROM wp_comments'); $GLOBALS['@pdo']->query(\"UPDATE SQLITE_SEQUENCE SET SEQ=0 WHERE NAME='wp_comments'\"); $GLOBALS['@pdo']->query('DELETE FROM wp_commentmeta'); $GLOBALS['@pdo']->query(\"UPDATE SQLITE_SEQUENCE SET SEQ=0 WHERE NAME='wp_commentmeta'\"); "
+        },
+        {
+            "step": "runPHP",
+            "code": "<?php require '/wordpress/wp-load.php'; import_static_files_from_directory(STATIC_FILES_ROOT); "
+        }
+    ]
+}
