@@ -4884,10 +4884,17 @@ var blockToMarkdown = (state, block) => {
       return `${list2}\n\n`;
     case "core/table":
       const cellValueToMarkdown = (cell) => htmlToMarkdown(cell.content).replaceAll("|", "\\|");
-      const headRow = block.attributes.head[0].cells;
+      let headRow, bodyRows;
+      if (block.attributes.head.length) {
+        headRow = block.attributes.head[0].cells;
+        bodyRows = block.attributes.body;
+      } else {
+        headRow = block.attributes.body[0].cells;
+        bodyRows = block.attributes.body.slice(1);
+      }
       const headAlignments = headRow.map((cell) => cell.align);
       const head = headRow.map(cellValueToMarkdown);
-      const body = block.attributes.body.map((row) => row.cells.map(cellValueToMarkdown));
+      const body = bodyRows.map((row) => row.cells.map(cellValueToMarkdown));
       const colWidths = [head, ...body].reduce((acc, cells) => {
         cells.forEach((cell, i) => {
           acc[i] = Math.max(acc[i] || 0, cell.length);

@@ -62,7 +62,7 @@ export function htmlToMarkdown(html, options = {}) {
 					traverseChildren(node, {
 						...options,
 						escapeMarkdown: false,
-					});                    
+					});
 					result += '`';
 					break;
 				case 'a':
@@ -229,10 +229,18 @@ const blockToMarkdown = (state, block) => {
 			const cellValueToMarkdown = (cell) =>
 				htmlToMarkdown(cell.content).replaceAll('|', '\\|');
 
-			const headRow = block.attributes.head[0].cells;
+            let headRow, bodyRows;
+            if (block.attributes.head.length) {
+                headRow = block.attributes.head[0].cells;
+                bodyRows = block.attributes.body;
+            } else {
+                headRow = block.attributes.body[0].cells;
+                bodyRows = block.attributes.body.slice(1);
+            }
+
 			const headAlignments = headRow.map((cell) => cell.align);
 			const head = headRow.map(cellValueToMarkdown);
-			const body = block.attributes.body.map((row) =>
+			const body = bodyRows.map((row) =>
 				row.cells.map(cellValueToMarkdown)
 			);
 
@@ -578,10 +586,9 @@ const nodeToBlock = (parentBlock, node) => {
 				}
 			}
 
-			block.attributes.content = escapeHTML(node.literal.replace(/\n$/, '')).replace(
-				/\n/g,
-				'<br>'
-			);
+			block.attributes.content = escapeHTML(
+				node.literal.replace(/\n$/, '')
+			).replace(/\n/g, '<br>');
 			break;
 
 		case 'html_block':
